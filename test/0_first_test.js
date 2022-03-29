@@ -9,8 +9,8 @@ describe("Majoritarian", function () {
 
     const deployedFromAddress = await ethers.getSigners();
     const ownerFirst = await majo.owner();
-    console.log({deployedFromAddress, ownerFirst });
-    expect(ownerFirst).to.equal(deployedFromAddress[0].address);
+    const defaultAddr = deployedFromAddress[0].address;
+    expect(ownerFirst).to.equal(defaultAddr);
 
     // const setGreetingTx = await greeter.setGreeting("Hola, mundo!");
 

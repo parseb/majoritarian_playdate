@@ -7,7 +7,7 @@ require("@nomiclabs/hardhat-web3");
 //require("solidity-coverage");
 require("@nomiclabs/hardhat-etherscan");
 require("hardhat-gas-reporter");
-
+require("@nomiclabs/hardhat-truffle5")
 
 
 
@@ -84,7 +84,21 @@ module.exports = {
   solidity: {
     compilers: [
       {
-        version: "0.8.10",
+        version: "0.8.6",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+          outputSelection: {
+            "*": {
+              "*": ["storageLayout"]
+            }
+          },
+        },
+      },
+      {
+        version: "0.5.12",
         settings: {
           optimizer: {
             enabled: true,
