@@ -1,22 +1,14 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
+const helpers = require('./helpers/setup');
 
-describe("Majoritarian", function () {
+describe("Majoritarian has default owner", function () {
   it("Should return owner address", async function () {
     const Majoritarian = await ethers.getContractFactory("Majoritarian");
-    const majo = await Majoritarian.deploy();
-    await majo.deployed();
-
-    const deployedFromAddress = await ethers.getSigners();
+    const majo = await Majoritarian.deploy(ethers.constants.AddressZero); //bal pool address , token1 address , token2 address
     const ownerFirst = await majo.owner();
-    const defaultAddr = deployedFromAddress[0].address;
-    expect(ownerFirst).to.equal(defaultAddr);
+    expect(ownerFirst).to.equal(await helpers.defaultAddr());
 
-    // const setGreetingTx = await greeter.setGreeting("Hola, mundo!");
 
-    // // wait until the transaction is mined
-    // await setGreetingTx.wait();
-
-    // expect(await greeter.greet()).to.equal("Hola, mundo!");
   });
 });
