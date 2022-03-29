@@ -14,8 +14,8 @@ contract Majoritarian is Ownable, GnosisSafe {
     /// msg.sender => Who (y) => nr. of stones to acknowledge for add/remove 'Em
     mapping(address => mapping(address => uint256)) pressForce;
 
-    /// address of Who (Y) => [sum of total stones to add Y, sum of total stones to remove Y]
-    mapping(address => uint256[2]) whoTotal;
+    /// address of Who (Y) => [sum of total stones to add/remove Y]
+    mapping(address => uint256) whoTotal;
 
     /// address of sender => address of Who (Y) => status of Y when sender last voted
     mapping(address => mapping(address => bool)) lastPressedY;
@@ -24,13 +24,12 @@ contract Majoritarian is Ownable, GnosisSafe {
         balancerPool = iBPool(BPool);
     }
 
-
     function vote(address payable _who) external returns (bool s) {
         entersToVote(_who);
         bool whoState = isOwner(_who);
         if (whoState) require(incrementDrop(_who));
-        if (! whoState) require(incrementAdd(_who));
-        
+        if (!whoState) require(incrementAdd(_who));
+
         if (whoState != isOwner(_who)) {
             lastPressedY[msg.sender][_who] = isOwner(_who);
             whoTotal[_who] = 0;
@@ -38,18 +37,15 @@ contract Majoritarian is Ownable, GnosisSafe {
         s = true;
     }
 
-
-    function incrementDrop(address _w) private return bool {
-
+    function incrementDrop(address _w) private returns (bool) {
         // function removeOwner( address prevOwner, address owner, uint256 _threshold)
         return true;
     }
 
-    function incrementAdd(address _w) private return bool {
+    function incrementAdd(address _w) private returns (bool) {
         // addOwnerWithThreshold(address owner, uint256 _threshold)
-            return true;
+        return true;
     }
-
 
     function entersToVote(address _who) private {
         pressForce[msg.sender][_who] = (pressForce[msg.sender][_who] > 0 &&
