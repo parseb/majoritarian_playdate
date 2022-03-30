@@ -59,28 +59,11 @@ describe("a happy path starts here", function() {
 
         for (let i = 1; i < accounts.length; i++) {
             t1.transfer(accounts[i], toWei(String(i)));
-            t1.transfer(accounts[i], toWei(String(i)));
             t2.transfer(accounts[i], toWei(String(i)));
         }
     });
 
-    describe("components are present",  function() {
-        it("gets the default address", async function() {
-            const defaultAddr = await helpers.defaultAddr();
-            const defaultSigner = await helpers.activeAddresses();
-            expect(defaultAddr).to.equal(defaultSigner[0]);
-        });
-        
-        it("gets the token1", async function() {
-            const token1 = await helpers.token1();
-            expect(token1).to.be.an.instanceOf(ethers.Contract);
-        });
-        
-        it("gets the token2", async function() {
-            const token2 = await helpers.token2();
-            expect(token2).to.be.an.instanceOf(ethers.Contract);
-        });    
-    });
+
 
     describe("components are present",  function() {
         it("gets the default address", async function() {
@@ -107,11 +90,30 @@ describe("a happy path starts here", function() {
             compare = owner1 === owner2 && owner3 === defaultA && owner1 === owner3;
             expect(compare).to.be.true;
         });
-    
-    
     });
 
-  });
+    describe("finalizes balancer pool", function() { 
+        it("initializes Majoritarian contract", async function() {
+            await pool.setController(M.address);
+            await t1.mint(M.address, '1000000000');
+            await t2.mint(M.address, '1000000000');
+            await M.initBPool();
+            const isFinalized = await pool.isFinalized();
+            
+            expect(isFinalized).to.be.true; 
+          });
+        
+        it("renounces ownership of Majoritarian", async function() {
+            const renounced = await M.renounceOwnership();
+            const owner = await M.owner();
+            const isZero = owner === AddressZero;
+            console.log("renounced----", renounced);
+            expect(isZero).to.be.true;
+        });
+    });
+
+});
+
 
 
 
