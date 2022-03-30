@@ -24,14 +24,19 @@ contract Majoritarian is Ownable, GnosisSafe {
         balancerPool = iBPool(BPool);
     }
 
+    event WasFlipped(address indexed who, uint256 pressureAmt);
+
     function vote(address payable _who) external returns (bool s) {
-        entersToVote(_who);
+        require(_who != address(0));
         bool whoState = isOwner(_who);
+        entersToVote(_who, whoState);
+
         if (whoState) require(incrementDrop(_who));
         if (!whoState) require(incrementAdd(_who));
 
         if (whoState != isOwner(_who)) {
             lastPressedY[msg.sender][_who] = isOwner(_who);
+            emit WasFlipped(_who, whoTotal[_who]);
             whoTotal[_who] = 0;
         }
         s = true;
@@ -39,19 +44,35 @@ contract Majoritarian is Ownable, GnosisSafe {
 
     function incrementDrop(address _w) private returns (bool) {
         // function removeOwner( address prevOwner, address owner, uint256 _threshold)
+
+        pressForce[msg.sender][_w] = balancerPool.balanceOf(msg.sender);
         return true;
     }
 
     function incrementAdd(address _w) private returns (bool) {
         // addOwnerWithThreshold(address owner, uint256 _threshold)
+
+        pressForce[msg.sender][_w] = balancerPool.balanceOf(msg.sender);
         return true;
     }
 
-    function entersToVote(address _who) private {
-        pressForce[msg.sender][_who] = (pressForce[msg.sender][_who] > 0 &&
-            lastPressedY[msg.sender][_who] != isOwner(_who))
-            ? 0
-            : balancerPool.balanceOf(msg.sender);
+    function entersToVote(address _who, bool isIn) private {
+        uint256 currentBalance = balancerPool.balanceOf(msg.sender);
+
+        if (pressForce[msg.sender][_who] > 0) {
+            if (pressForce[msg.sender][_who] > currentBalance) {
+                whoTotal[_who] -= (pressForce[msg.sender][_who] -
+                    currentBalance);
+            } else {
+                whoTotal[_who] += (currentBalance -
+                    pressForce[msg.sender][_who]);
+            }
+
+            pressForce[msg.sender][_who] = (lastPressedY[msg.sender][_who] !=
+                isIn)
+                ? 0
+                : currentBalance;
+        }
     }
 
     function isMajority(address _who) internal view returns (bool x) {
