@@ -1,32 +1,31 @@
 
 
-
+// Artifacts Truffle
 const { artifacts } = require('hardhat');
-// Balancer imports
+
+// Balancer 
 const BPool = artifacts.require('BPool');
 const BFactory = artifacts.require('BFactory');
 
-// Mocking Imports
+// Mocking 
 // const { smock } = require('@defi-wonderland/smock');
 
 
 // Exported Functionality
 
+// Address of primary account[0] and owner() / minter
 const defaultAddr = async () => { 
     const signers = await ethers.getSigners();
     return signers[0].address;
 }
 
+// Active accounts list
 const activeAddresses = async () => {
     const signers = await ethers.getSigners();
     accounts = [];
-    for (const signer of signers) {
-        accounts.push(signer.address);
-    }
+    signers.map(s => accounts.push(s.address));
     return accounts;
  }
-
-
 
 const balancerPool = async () => {
     // creates new balancer pool and returns address
@@ -35,18 +34,25 @@ const balancerPool = async () => {
     const balancerPoolAddress = await pooltx.logs[0].args.pool;
     const pool = await BPool.at(balancerPoolAddress);
 
-    return { balancerPool }
+    return pool;
 };
 
 const token1 = async () => {
     token1Factory = await ethers.getContractFactory("Mock1");
-    token1 = await token1Factory.deploy(); 
-    return { token1 };
+    t1 = await token1Factory.deploy(); 
+    return  t1 ;
 }
 const token2 = async () => {
     token2Factory = await ethers.getContractFactory("Mock2");
-    token2 = await token2Factory.deploy(); 
-    return { token2 };
+    t2 = await token2Factory.deploy(); 
+    return  t2 ;
+}
+
+const deployMajoritarian = async (a, b, c) => {
+    const MajoritarianContract = await ethers.getContractFactory("Majoritarian");
+    const Majoritarian = await MajoritarianContract.deploy(a, b, c);
+    
+    return Majoritarian;
 }
 
 
@@ -58,5 +64,6 @@ module.exports = {
     token1,
     token2,
     activeAddresses,
-    defaultAddr
+    defaultAddr,
+    deployMajoritarian
 };

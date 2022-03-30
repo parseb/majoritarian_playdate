@@ -2,15 +2,15 @@
 pragma solidity 0.8.6;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-
 import "./interfaces/iBPool.sol";
 import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
+import "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 /// known unknowns : ERC20 fungibility. loan attack
 
 contract Majoritarian is Ownable, GnosisSafe {
     iBPool public balancerPool;
-
+    address[2] poolTokens;
     /// msg.sender => Who (y) => nr. of stones to acknowledge for add/remove 'Em
     mapping(address => mapping(address => uint256)) pressForce;
 
@@ -20,8 +20,36 @@ contract Majoritarian is Ownable, GnosisSafe {
     /// address of sender => address of Who (Y) => status of Y when sender last voted
     mapping(address => mapping(address => bool)) lastPressedY;
 
-    constructor(address BPool) {
-        balancerPool = iBPool(BPool);
+    constructor(
+        address _bpAddress,
+        address _token1,
+        address _token2
+    ) {
+        require(
+            _bpAddress != address(0) &&
+                _token1 != address(0) &&
+                _token2 != address(0)
+        );
+        balancerPool = iBPool(_bpAddress);
+        poolTokens = [_token1, _token2];
+    }
+
+    function initBPool() public onlyOwner {
+        require(
+            IERC20(poolTokens[0]).approve(
+                address(balancerPool),
+                type(uint256).max - 1
+            ) &&
+                IERC20(poolTokens[1]).approve(
+                    address(balancerPool),
+                    type(uint256).max - 1
+                )
+        );
+
+        balancerPool.bind(poolTokens[0], 1000000, 50 * (10 * 18));
+        balancerPool.bind(poolTokens[1], 1000000, 50 * (10 * 18));
+        balancerPool.finalize();
+        require(balancerPool.isFinalized(), "Initialization Failed");
     }
 
     event WasFlipped(address indexed who, uint256 pressureAmt);
