@@ -34,7 +34,7 @@ contract Majoritarian is Ownable, GnosisSafe {
         poolTokens = [_token1, _token2];
     }
 
-    function initBPool() public onlyOwner {
+    function initBPool() public onlyOwner returns (bool s) {
         require(
             IERC20(poolTokens[0]).approve(
                 address(balancerPool),
@@ -46,10 +46,11 @@ contract Majoritarian is Ownable, GnosisSafe {
                 )
         );
 
-        balancerPool.bind(poolTokens[0], 1000000, 50 * (10 * 18));
-        balancerPool.bind(poolTokens[1], 1000000, 50 * (10 * 18));
+        balancerPool.bind(poolTokens[0], 1000000, 25 * (10**18) - 1);
+        balancerPool.bind(poolTokens[1], 1000000, 25 * (10**18) - 1);
         balancerPool.finalize();
-        require(balancerPool.isFinalized(), "Initialization Failed");
+        s = balancerPool.isFinalized();
+        require(s, "Initialization Failed");
     }
 
     event WasFlipped(address indexed who, uint256 pressureAmt);
