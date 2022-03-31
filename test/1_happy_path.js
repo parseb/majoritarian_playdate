@@ -18,7 +18,7 @@ describe("a happy path starts here", function() {
     let accounts; // Accounts list
     let defaultA; // Default account
 
-    let a1;
+    let a1; //staker1
     let a2;
     let a3;
     let a4;
@@ -29,6 +29,12 @@ describe("a happy path starts here", function() {
     let a9;
     let a10;
 
+    let member1; //multisig owner
+    let member2;
+    let member3;
+    let member4;
+    let member5;
+
     before( async function() {
         t1 = await helpers.token1();
         t2 = await helpers.token2();
@@ -36,30 +42,20 @@ describe("a happy path starts here", function() {
         accounts = await helpers.activeAddresses();
         defaultA = await helpers.defaultAddr();
 
-        signers = await ethers.getSigners();
+        //signers = await ethers.getSigners();
+        [ skip, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10 ] = await ethers.getSigners();
 
-        a1 = signers[1];
-        a2 = signers[2];
-        a3 = signers[3];
-        a4 = signers[4];
-        a5 = signers[5];
-        a6 = signers[6];
-        a7 = signers[7];
-        a8 = signers[8];
-        a9 = signers[9];
-        a10 = signers[10];
-
-        for (i in [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10]) {
-            t1.connect(i).approve(pool.address, MaxUint256);
-            t2.connect(i).approve(pool.address, MaxUint256);
-        }
+        [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10].forEach(async (i) => {
+            await t1.connect(i).approve(pool.address, MaxUint256);
+            await t2.connect(i).approve(pool.address, MaxUint256);
+        });
         
         const MajoritarianContract = await ethers.getContractFactory("Majoritarian");
         M = await MajoritarianContract.deploy(pool.address, t1.address, t2.address);
 
         for (let i = 1; i < accounts.length; i++) {
-            t1.transfer(accounts[i], toWei(String(i)));
-            t2.transfer(accounts[i], toWei(String(i)));
+            await t1.mint(accounts[i], toWei(String(i), 'ether'));
+            await t2.mint(accounts[i], toWei(String(i), 'ether'));
         }
     });
 
@@ -95,8 +91,8 @@ describe("a happy path starts here", function() {
     describe("finalizes balancer pool", function() { 
         it("initializes Majoritarian contract", async function() {
             await pool.setController(M.address);
-            await t1.mint(M.address, '1000000000');
-            await t2.mint(M.address, '1000000000');
+            await t1.mint(M.address, '100000000000000000000');
+            await t2.mint(M.address, '100000000000000000000');
             await M.initBPool();
             const isFinalized = await pool.isFinalized();
             
@@ -107,19 +103,65 @@ describe("a happy path starts here", function() {
             const renounced = await M.renounceOwnership();
             const owner = await M.owner();
             const isZero = owner === AddressZero;
-            console.log("renounced----", renounced);
             expect(isZero).to.be.true;
+        });
+
+        it("checks that all users have 0 pool balance", async function() {
+
+            let b1 = await pool.balanceOf(a1.address);
+            let b2 = await pool.balanceOf(a2.address);
+            let b3 = await pool.balanceOf(a3.address);
+            let b4 = await pool.balanceOf(a4.address);
+            let b5 = await pool.balanceOf(a5.address);
+            let b6 = await pool.balanceOf(a6.address);
+            let b7 = await pool.balanceOf(a7.address);
+            let b8 = await pool.balanceOf(a8.address);
+            let b9 = await pool.balanceOf(a9.address);
+            let b10 = await pool.balanceOf(a10.address);
+
+            expect([b1, b2, b3, b4, b5, b6, b7, b8, b9, b10].map(s => s.toNumber() )).to.deep.equal([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    });
+});
+describe("safe membership is dependent on majorarian dynamic",  function() { 
+    it("deposits funds in pool", async function() {
+        listAccounts =  [skip, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10] =  await ethers.getSigners();
+
+        
+        // poolBalances = await pool.getBalances();
+        //console.log(pool);
+        
+
+        for ( let i = 2; i >1 ;i--) {
+            totalSupply = await pool.totalSupply();
+
+            console.log("total supply of pool--- ZZZZZ ----", String(totalSupply));
+            //pool.connect(listAccounts[i]);
+            // await pool.deposit(toWei(listAccounts.indexOf(i), 'ether'), {from: i});
+            tx = await pool.connect(listAccounts[i]).joinPool("1000000000", [String( i * (10 **18) ),String( i * (10 **18) )]);
+            
+
+        }
+
+
+        // b1 = await pool.balanceOf(a1.address);
+        // b2 = await pool.balanceOf(a2.address);
+        // b3 = await pool.balanceOf(a3.address);
+        // b4 = await pool.balanceOf(a4.address);
+        // b5 = await pool.balanceOf(a5.address);
+        // b6 = await pool.balanceOf(a6.address);
+        // b7 = await pool.balanceOf(a7.address);
+        // b8 = await pool.balanceOf(a8.address);
+        // b9 = await pool.balanceOf(a9.address);
+        // b10 = await pool.balanceOf(a10.address);
+
+        // console.log("balances of pool", [b1, b2, b3, b4, b5, b6, b7, b8, b9, b10].map(s => fromWei(s) ));
+        // //expect( fromWei(b3) ).to.be.equal( fromWei(b1) + fromWei(b2));
+            
         });
     });
 
+
+
 });
-
-
-
-
-
-
-
-
 
 

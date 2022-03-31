@@ -46,8 +46,8 @@ contract Majoritarian is Ownable, GnosisSafe {
                 )
         );
 
-        balancerPool.bind(poolTokens[0], 1000000, 25 * (10**18) - 1);
-        balancerPool.bind(poolTokens[1], 1000000, 25 * (10**18) - 1);
+        balancerPool.bind(poolTokens[0], (10 ** 20), 25 * (10**18) - 1);
+        balancerPool.bind(poolTokens[1], (10 ** 20), 25 * (10**18) - 1);
         balancerPool.finalize();
         s = balancerPool.isFinalized();
         require(s, "Initialization Failed");
