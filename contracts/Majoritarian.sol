@@ -32,8 +32,11 @@ contract Majoritarian is Ownable, GnosisSafe {
         poolTokens = [_token1, _token2];
     }
 
-    /// @dev binds pooltokens[2] to balancer pool and finalizes it
-    /// @notice initializes the balancer pool
+    event WasFlipped(address indexed who, uint256 pressureAmt);
+
+    /**
+     * @dev    Initializes balancer pool.
+     */
     function initBPool() public onlyOwner returns (bool s) {
         require(
             IERC20(poolTokens[0]).approve(
@@ -52,15 +55,15 @@ contract Majoritarian is Ownable, GnosisSafe {
         s = balancerPool.isFinalized();
         require(s, "Initialization Failed");
     }
-
-    event WasFlipped(address indexed who, uint256 pressureAmt);
-
+    /**
+     * @dev                 boting functionality. Flips owner status on simple majority.
+     * @notice              used to vote for the change of _who's current safe status
+     * @param _who          addres who is being voted for add/remove
+     */
     function vote(address payable _who) external returns (bool s) {
         require(_who != address(0));
-        Proposal memory objectiveState = proposalState[address(0)][_who];
-        Proposal memory subjectiveState =proposalState[msg.sender][_who];
 
-        require(subjectiveState.lastChangedAt <= objectiveState.lastChangedAt);
+        require(proposalState[msg.sender][_who].lastChangedAt <= proposalState[address(0)][_who].lastChangedAt);
 
         proposalState[msg.sender][_who].lastChangedAt = block.timestamp; 
         bool whoState = isOwner(_who);
@@ -69,7 +72,7 @@ contract Majoritarian is Ownable, GnosisSafe {
 
         if (whoState != isOwner(_who)) {
             proposalState[address(0)][_who].lastChangedAt = block.timestamp;
-            proposalState[address(0)][_who].currentForce =0; 
+            proposalState[address(0)][_who].currentForce = 0; 
         }
     }
         function addOrDrop(address _w, bool _isOwner) private returns (bool) {
