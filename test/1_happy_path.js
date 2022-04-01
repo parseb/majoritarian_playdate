@@ -126,42 +126,39 @@ describe("safe membership is dependent on majorarian dynamic",  function() {
     it("deposits funds in pool", async function() {
         listAccounts =  [skip, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10] =  await ethers.getSigners();
 
-        
-        // poolBalances = await pool.getBalances();
-        //console.log(pool);
-        
-
-        for ( let i = 2; i >1 ;i--) {
+        for ( let i = 10; i >=1 ;i--) {
             totalSupply = await pool.totalSupply();
 
-            console.log("total supply of pool--- ZZZZZ ----", String(totalSupply));
             //pool.connect(listAccounts[i]);
             // await pool.deposit(toWei(listAccounts.indexOf(i), 'ether'), {from: i});
-            tx = await pool.connect(listAccounts[i]).joinPool("1000000000", [String( i * (10 **18) ),String( i * (10 **18) )]);
-            
-
+            tx = await pool.connect(listAccounts[i]).joinPool(String( i * (10**17)), [String( i * (10 **18) ),String( i * (10 **18) )]);
+            // console.log("total supply of pool--- ZZZZZ ----", String(totalSupply), "--tS -|", i, " -- balanceof i --", String(await pool.balanceOf(listAccounts[i].address)) ," -- ","|- balance of addr0-- ", String( await pool.balanceOf(M.address))," - diff- ", String( totalSupply - ( await pool.balanceOf(M.address))));
         }
-
-
-        // b1 = await pool.balanceOf(a1.address);
-        // b2 = await pool.balanceOf(a2.address);
-        // b3 = await pool.balanceOf(a3.address);
-        // b4 = await pool.balanceOf(a4.address);
-        // b5 = await pool.balanceOf(a5.address);
-        // b6 = await pool.balanceOf(a6.address);
-        // b7 = await pool.balanceOf(a7.address);
-        // b8 = await pool.balanceOf(a8.address);
-        // b9 = await pool.balanceOf(a9.address);
-        // b10 = await pool.balanceOf(a10.address);
-
-        // console.log("balances of pool", [b1, b2, b3, b4, b5, b6, b7, b8, b9, b10].map(s => fromWei(s) ));
-        // //expect( fromWei(b3) ).to.be.equal( fromWei(b1) + fromWei(b2));
-            
-        });
     });
 
+    it("checks that balancer pool token distribution is incremental", async function() {
+        b1 = await pool.balanceOf(a1.address);
+        b2 = await pool.balanceOf(a2.address);
+        b3 = await pool.balanceOf(a3.address);
+        b4 = await pool.balanceOf(a4.address);
+        b5 = await pool.balanceOf(a5.address);
+        b6 = await pool.balanceOf(a6.address);
+        b7 = await pool.balanceOf(a7.address);
+        b8 = await pool.balanceOf(a8.address);
+        b9 = await pool.balanceOf(a9.address);
+        b10 = await pool.balanceOf(a10.address);
 
+        balances = [b1, b2, b3, b4, b5, b6, b7, b8, b9, b10];
+        balances.forEach(async (x) => {
+        expect(parseInt(b3)).to.be.equal(parseInt(b1) + parseInt(b2));
+            
+        });
+        for(b =2; b < balances.length; b++){
+            expect(parseInt(balances[b])).to.be.equal(parseInt(balances[b-1]) + parseInt(balances[0]));
+        }
+    })
 
 });
 
 
+});

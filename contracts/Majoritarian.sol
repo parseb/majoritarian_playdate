@@ -6,19 +6,17 @@ import "./interfaces/iBPool.sol";
 import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import "@openzeppelin/contracts/interfaces/IERC20.sol";
 
-/// known unknowns : ERC20 fungibility. loan attack
-
 contract Majoritarian is Ownable, GnosisSafe {
     iBPool public balancerPool;
     address[2] poolTokens;
-    /// msg.sender => Who (y) => nr. of stones to acknowledge for add/remove 'Em
-    mapping(address => mapping(address => uint256)) pressForce;
 
-    /// address of Who (Y) => [sum of total stones to add/remove Y]
-    mapping(address => uint256) whoTotal;
+    struct Proposal {
+        uint256 lastChangedAt;
+        uint256 currentForce;
+    }
 
-    /// address of sender => address of Who (Y) => status of Y when sender last voted
-    mapping(address => mapping(address => bool)) lastPressedY;
+    /// @dev address of sender [relational] or 0 [default], address of who = > Proposal
+    mapping(address => mapping(address => Proposal)) proposalState;
 
     constructor(
         address _bpAddress,
@@ -34,6 +32,8 @@ contract Majoritarian is Ownable, GnosisSafe {
         poolTokens = [_token1, _token2];
     }
 
+    /// @dev binds pooltokens[2] to balancer pool and finalizes it
+    /// @notice initializes the balancer pool
     function initBPool() public onlyOwner returns (bool s) {
         require(
             IERC20(poolTokens[0]).approve(
@@ -57,76 +57,37 @@ contract Majoritarian is Ownable, GnosisSafe {
 
     function vote(address payable _who) external returns (bool s) {
         require(_who != address(0));
-        bool whoState = isOwner(_who);
-        entersToVote(_who, whoState);
+        Proposal memory objectiveState = proposalState[address(0)][_who];
+        Proposal memory subjectiveState =proposalState[msg.sender][_who];
 
-        if (whoState) require(incrementDrop(_who));
-        if (!whoState) require(incrementAdd(_who));
+        require(subjectiveState.lastChangedAt <= objectiveState.lastChangedAt);
+
+        proposalState[msg.sender][_who].lastChangedAt = block.timestamp; 
+        bool whoState = isOwner(_who);
+
+        s = addOrDrop(_who, whoState);
 
         if (whoState != isOwner(_who)) {
-            lastPressedY[msg.sender][_who] = isOwner(_who);
-            emit WasFlipped(_who, whoTotal[_who]);
-            whoTotal[_who] = 0;
+            proposalState[address(0)][_who].lastChangedAt = block.timestamp;
+            proposalState[address(0)][_who].currentForce =0; 
         }
-        s = true;
     }
+        function addOrDrop(address _w, bool _isOwner) private returns (bool) {
 
-    function incrementDrop(address _w) private returns (bool) {
-        // function removeOwner( address prevOwner, address owner, uint256 _threshold)
+            uint256 sentForce = balancerPool.balanceOf(msg.sender);
+            proposalState[address(0)][_w].currentForce += sentForce;
+            proposalState[msg.sender][_w].currentForce = sentForce;
+            proposalState[msg.sender][_w].lastChangedAt = block.timestamp;
 
-        pressForce[msg.sender][_w] = balancerPool.balanceOf(msg.sender);
-        return true;
-    }
+            if (isMajority(_w)) {
+                if (! _isOwner) addOwnerWithThreshold(_w, (ownerCount / 2 + 1));
+                if (_isOwner) removeOwner(address(this), _w, (ownerCount - 1) / 2 + 1);
 
-    function incrementAdd(address _w) private returns (bool) {
-        // addOwnerWithThreshold(address owner, uint256 _threshold)
-
-        pressForce[msg.sender][_w] = balancerPool.balanceOf(msg.sender);
-        return true;
-    }
-
-    function entersToVote(address _who, bool isIn) private {
-        uint256 currentBalance = balancerPool.balanceOf(msg.sender);
-
-        if (pressForce[msg.sender][_who] > 0) {
-            if (pressForce[msg.sender][_who] > currentBalance) {
-                whoTotal[_who] -= (pressForce[msg.sender][_who] -
-                    currentBalance);
-            } else {
-                whoTotal[_who] += (currentBalance -
-                    pressForce[msg.sender][_who]);
+                emit WasFlipped(_w, proposalState[address(0)][_w].currentForce);
             }
-
-            pressForce[msg.sender][_who] = (lastPressedY[msg.sender][_who] !=
-                isIn)
-                ? 0
-                : currentBalance;
-        }
+        return true;
     }
-
     function isMajority(address _who) internal view returns (bool x) {
-        x = balancerPool.totalSupply() / 2 < whoTotal[_who];
+        x = (balancerPool.totalSupply() - balancerPool.balanceOf(address(this))) / 2 < proposalState[address(0)][_who].currentForce;
     }
-
-    // function addOwnerWithThreshold(address owner, uint256 _threshold)
-    //     public
-    //     override
-    //     authorized
-    // {
-    //     // Owner address cannot be null, the sentinel or the Safe itself.
-    //     require(
-    //         owner != address(0) &&
-    //             owner != SENTINEL_OWNERS &&
-    //             owner != address(this),
-    //         "GS203"
-    //     );
-    //     // No duplicate owners allowed.
-    //     require(owners[owner] == address(0), "GS204");
-    //     owners[owner] = owners[SENTINEL_OWNERS];
-    //     owners[SENTINEL_OWNERS] = owner;
-    //     ownerCount++;
-    //     emit AddedOwner(owner);
-    //     // Change threshold if threshold was changed.
-    //     if (threshold != _threshold) changeThreshold(_threshold);
-    // }
 }
