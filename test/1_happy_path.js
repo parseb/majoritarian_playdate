@@ -29,6 +29,10 @@ describe("a happy path starts here", function() {
     let a9;
     let a10;
 
+    let randAddress1 = ethers.Wallet.createRandom().address;
+    let randAddress2 = ethers.Wallet.createRandom().address;
+    let randAddress3 = ethers.Wallet.createRandom().address;
+
     let member1; //multisig owner
     let member2;
     let member3;
@@ -81,10 +85,8 @@ describe("a happy path starts here", function() {
         it("Default address is owner", async function () {
             owner1 = await t1.owner();
             owner2 = await t2.owner();
-            owner3 = await M.owner();
-    
-            compare = owner1 === owner2 && owner3 === defaultA && owner1 === owner3;
-            expect(compare).to.be.true;
+
+            expect(owner1 === owner2).to.be.true;
         });
     });
 
@@ -99,12 +101,12 @@ describe("a happy path starts here", function() {
             expect(isFinalized).to.be.true; 
           });
         
-        it("renounces ownership of Majoritarian", async function() {
-            const renounced = await M.renounceOwnership();
-            const owner = await M.owner();
-            const isZero = owner === AddressZero;
-            expect(isZero).to.be.true;
-        });
+        // it("renounces ownership of Majoritarian", async function() {
+        //     const renounced = await M.renounceOwnership();
+        //     const owner = await M.owner();
+        //     const isZero = owner === AddressZero;
+        //     expect(isZero).to.be.true;
+        // });
 
         it("checks that all users have 0 pool balance", async function() {
 
@@ -128,11 +130,7 @@ describe("safe membership is dependent on majorarian dynamic",  function() {
 
         for ( let i = 10; i >=1 ;i--) {
             totalSupply = await pool.totalSupply();
-
-            //pool.connect(listAccounts[i]);
-            // await pool.deposit(toWei(listAccounts.indexOf(i), 'ether'), {from: i});
             tx = await pool.connect(listAccounts[i]).joinPool(String( i * (10**17)), [String( i * (10 **18) ),String( i * (10 **18) )]);
-            // console.log("total supply of pool--- ZZZZZ ----", String(totalSupply), "--tS -|", i, " -- balanceof i --", String(await pool.balanceOf(listAccounts[i].address)) ," -- ","|- balance of addr0-- ", String( await pool.balanceOf(M.address))," - diff- ", String( totalSupply - ( await pool.balanceOf(M.address))));
         }
     });
 
@@ -157,6 +155,91 @@ describe("safe membership is dependent on majorarian dynamic",  function() {
             expect(parseInt(balances[b])).to.be.equal(parseInt(balances[b-1]) + parseInt(balances[0]));
         }
     })
+
+    it("checks that address state does not flip on minority increment", async function() {
+        
+        expect(await M.isOwner(randAddress1)).to.be.false; 
+        await M.connect(a2).vote(randAddress1);
+        votes1 = String(await M.getVotesOf(randAddress1));
+        expect(votes1).to.be.equal(await pool.balanceOf(a2.address));
+        expect(await M.isMajority(randAddress1)).to.be.false;
+        expect(await M.isOwner(randAddress1)).to.be.false; 
+        
+        await hre.network.provider.send("hardhat_mine", ["0x100"]);
+        await M.connect(a3).vote(randAddress1);
+        votes2 = String(await M.getVotesOf(randAddress1));
+        expect(await M.isMajority(randAddress1)).to.be.false;
+        expect(await M.isOwner(randAddress1)).to.be.false;
+        console.log(votes2, votes1)
+        expect(votes2).to.be.equal(String((parseInt( await pool.balanceOf(a2.address))) +  parseInt(await pool.balanceOf(a3.address)) ));
+        
+        await M.connect(a10).vote(randAddress1);
+        await M.connect(a9).vote(randAddress1);
+        x = await M.connect(a8).vote(randAddress1);
+        await hre.network.provider.send("hardhat_mine", ["0x100"]);
+        isMajority = await M.isMajority(randAddress1);
+        z = await x.wait();
+        expect(await M.isMajority(randAddress1)).to.be.false;
+        
+        console.log(z);
+        console.log(await M.isOwner(randAddress1), String(await M.getVotesOf(randAddress1)), String((await pool.totalSupply()) - (await pool.balanceOf(M.address))), String(await M.isMajority(randAddress1)), );
+        //zzz = await M.getOwners(); unhandled exception
+
+        expect(await M.connect(a3).isOwner(randAddress1)).to.be.true;
+    });
+
+    it("checks owner role is flipped on and off by same majority", async function() {
+        expect(await M.isOwner(randAddress2)).to.be.false; 
+        await M.connect(a2).vote(randAddress2);
+        votes1 = String(await M.getVotesOf(randAddress2));
+        expect(votes1).to.be.equal(await pool.balanceOf(a2.address));
+        expect(await M.isMajority(randAddress2)).to.be.false;
+        expect(await M.isOwner(randAddress2)).to.be.false; 
+        
+        await hre.network.provider.send("hardhat_mine", ["0x100"]);
+        await M.connect(a3).vote(randAddress2);
+        votes2 = String(await M.getVotesOf(randAddress2));
+        expect(await M.isMajority(randAddress2)).to.be.false;
+        expect(await M.isOwner(randAddress2)).to.be.false;
+        console.log(votes2, votes1)
+        expect(votes2).to.be.equal(String((parseInt( await pool.balanceOf(a2.address))) +  parseInt(await pool.balanceOf(a3.address)) ));
+        
+        await M.connect(a10).vote(randAddress2);
+        await M.connect(a9).vote(randAddress2);
+        x = await M.connect(a8).vote(randAddress2);
+        await hre.network.provider.send("hardhat_mine", ["0x100"]);
+        isMajority = await M.isMajority(randAddress2);
+        z = await x.wait();
+        expect(await M.isMajority(randAddress2)).to.be.false;
+        expect(await M.connect(a3).isOwner(randAddress2)).to.be.true;
+
+        await M.connect(a2).vote(randAddress2);
+        await M.connect(a3).vote(randAddress2);
+        await M.connect(a10).vote(randAddress2);
+        await M.connect(a9).vote(randAddress2);
+        await M.connect(a8).vote(randAddress2);
+        expect(await M.connect(a3).isOwner(randAddress2)).to.be.false;
+
+
+    });
+
+    it("it should conistently flippen irrespective of O.O.O", async function() {
+        skip;
+    });
+
+    it("it cannot double vote irrespective of o.o.o", async function() {
+        expect(await M.connect(a3).isOwner(randAddress3)).to.be.false;
+
+        await M.connect(a2).vote(randAddress3);
+        await M.connect(a3).vote(randAddress3);
+        await M.connect(a10).vote(randAddress3);
+        await M.connect(a2).vote(randAddress3);
+        //await M.connect(a9).vote(randAddress3);
+        // await M.connect(a8).vote(randAddress3);
+
+        expect(await M.connect(a3).isOwner(randAddress3)).to.be.false;
+    });
+
 
 });
 
