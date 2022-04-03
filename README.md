@@ -1,7 +1,8 @@
 
 # Majoritarian
 
-Is a gnosis vault that uses balancer pool contributions to appoint or revoke owners. Digitally native continous *census suffrage*.
+Is a gnosis safe that leverages relative balancer pool holdings to asses the appointment and revocation of members. <br> 
+Is a "*digitally native continous representative census suffrage*."
 
 Repository is organized as follows:
 
