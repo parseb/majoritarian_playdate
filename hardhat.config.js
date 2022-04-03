@@ -7,7 +7,9 @@ require("@nomiclabs/hardhat-web3");
 //require("solidity-coverage");
 require("@nomiclabs/hardhat-etherscan");
 require("hardhat-gas-reporter");
-require("@nomiclabs/hardhat-truffle5")
+require("@nomiclabs/hardhat-truffle5");
+
+
 
 
 
@@ -135,7 +137,8 @@ module.exports = {
   },
   etherscan: {
     apiKey: {
-      mainnet: ETHERSCAN_API_KEY,
+      mainnet: `${ETHERSCAN_API_KEY}`,
+      rinkeby: `${ETHERSCAN_API_KEY}`,
       //arbitrumOne: ARBISCAN_API_KEY,
     },
   },

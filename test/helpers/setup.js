@@ -28,16 +28,7 @@ const activeAddresses = async () => {
  }
 
 const balancerPool = async () => {
-    // creates new balancer pool and returns address
-    //const bfactory = await BFactory.new();
-    // const bcontract = ethers.getContractFactory("BFactory")
-    // const bfactory = await bfactory.deploy();    
-    //const pooltx = await bfactory.newBPool();
     const BPool = await ethers.getContractFactory('BPool');
-    //const pooltx =  await bfactory.newBPool();
-    //const balancerPoolAddress = await pooltx.logs[0].args.pool;
-    // const balancerPoolAddress = await pooltx.logs[0].args.pool;
-    // const pool = await BPool.at(balancerPoolAddress);
     const pool = await BPool.deploy()
     return pool;
 };

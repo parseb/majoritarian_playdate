@@ -1,12 +1,9 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
-
 const BigNumber = require('bignumber.js');
-const { toWei, fromWei } = web3.utils;
 const { AddressZero, MaxUint256 } = ethers.constants;
-
+const { toWei, fromWei } = web3.utils;
 const helpers = require('./helpers/setup');
-const { AddressOne } = require('@gnosis.pm/safe-contracts');
 
 
 describe("a happy path starts here", function() {
@@ -46,7 +43,6 @@ describe("a happy path starts here", function() {
         accounts = await helpers.activeAddresses();
         defaultA = await helpers.defaultAddr();
 
-        //signers = await ethers.getSigners();
         [ skip, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10 ] = await ethers.getSigners();
 
         [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10].forEach(async (i) => {
@@ -62,8 +58,6 @@ describe("a happy path starts here", function() {
             await t2.mint(accounts[i], toWei(String(i), 'ether'));
         }
     });
-
-
 
     describe("components are present",  function() {
         it("gets the default address", async function() {
@@ -164,27 +158,19 @@ describe("safe membership is dependent on majorarian dynamic",  function() {
         expect(votes1).to.be.equal(await pool.balanceOf(a2.address));
         expect(await M.isMajority(randAddress1)).to.be.false;
         expect(await M.isOwner(randAddress1)).to.be.false; 
-        
-        await hre.network.provider.send("hardhat_mine", ["0x100"]);
+
         await M.connect(a3).vote(randAddress1);
         votes2 = String(await M.getVotesOf(randAddress1));
         expect(await M.isMajority(randAddress1)).to.be.false;
         expect(await M.isOwner(randAddress1)).to.be.false;
-        console.log(votes2, votes1)
         expect(votes2).to.be.equal(String((parseInt( await pool.balanceOf(a2.address))) +  parseInt(await pool.balanceOf(a3.address)) ));
         
         await M.connect(a10).vote(randAddress1);
         await M.connect(a9).vote(randAddress1);
         x = await M.connect(a8).vote(randAddress1);
-        await hre.network.provider.send("hardhat_mine", ["0x100"]);
         isMajority = await M.isMajority(randAddress1);
         z = await x.wait();
         expect(await M.isMajority(randAddress1)).to.be.false;
-        
-        console.log(z);
-        console.log(await M.isOwner(randAddress1), String(await M.getVotesOf(randAddress1)), String((await pool.totalSupply()) - (await pool.balanceOf(M.address))), String(await M.isMajority(randAddress1)), );
-        //zzz = await M.getOwners(); unhandled exception
-
         expect(await M.connect(a3).isOwner(randAddress1)).to.be.true;
     });
 
@@ -196,12 +182,10 @@ describe("safe membership is dependent on majorarian dynamic",  function() {
         expect(await M.isMajority(randAddress2)).to.be.false;
         expect(await M.isOwner(randAddress2)).to.be.false; 
         
-        await hre.network.provider.send("hardhat_mine", ["0x100"]);
         await M.connect(a3).vote(randAddress2);
         votes2 = String(await M.getVotesOf(randAddress2));
         expect(await M.isMajority(randAddress2)).to.be.false;
         expect(await M.isOwner(randAddress2)).to.be.false;
-        console.log(votes2, votes1)
         expect(votes2).to.be.equal(String((parseInt( await pool.balanceOf(a2.address))) +  parseInt(await pool.balanceOf(a3.address)) ));
         
         await M.connect(a10).vote(randAddress2);
@@ -220,27 +204,39 @@ describe("safe membership is dependent on majorarian dynamic",  function() {
         await M.connect(a8).vote(randAddress2);
         expect(await M.connect(a3).isOwner(randAddress2)).to.be.false;
 
-
     });
 
-    it("it should conistently flippen irrespective of O.O.O", async function() {
-        skip;
-    });
+    it("cannot double vote", async function() {
 
-    it("it cannot double vote irrespective of o.o.o", async function() {
-        expect(await M.connect(a3).isOwner(randAddress3)).to.be.false;
-
+        expect(await M.connect(a3).isOwner(randAddress3)).to.be.false; // not Owner
         await M.connect(a2).vote(randAddress3);
         await M.connect(a3).vote(randAddress3);
         await M.connect(a10).vote(randAddress3);
-        await M.connect(a2).vote(randAddress3);
-        //await M.connect(a9).vote(randAddress3);
-        // await M.connect(a8).vote(randAddress3);
-
+        await expect( M.connect(a2).vote(randAddress3)).to.be.revertedWith("Voted. Cannot Actualize");
         expect(await M.connect(a3).isOwner(randAddress3)).to.be.false;
+        await M.connect(a9).vote(randAddress3);
+        await M.connect(a8).vote(randAddress3);
+        expect(await M.connect(a3).isOwner(randAddress3)).to.be.true; // Owner
+        ///
+        await M.connect(a2).vote(randAddress3);
+        await M.connect(a3).vote(randAddress3);
+        await M.connect(a10).vote(randAddress3);
+        await expect( M.connect(a2).vote(randAddress3)).to.be.revertedWith("Voted. Cannot Actualize");
+        expect(await M.connect(a3).isOwner(randAddress3)).to.be.true;
+        await M.connect(a9).vote(randAddress3);
+        await M.connect(a8).vote(randAddress3);
+        expect(await M.connect(a3).isOwner(randAddress3)).to.be.false; // not Owner
+        ///
+        await M.connect(a2).vote(randAddress3);
+        await M.connect(a3).vote(randAddress3);
+        await M.connect(a10).vote(randAddress3);
+        await expect( M.connect(a2).vote(randAddress3)).to.be.revertedWith("Voted. Cannot Actualize");
+        expect(await M.connect(a3).isOwner(randAddress3)).to.be.false;
+        await M.connect(a9).vote(randAddress3);
+        await M.connect(a8).vote(randAddress3);
+        expect(await M.connect(a3).isOwner(randAddress3)).to.be.true; // Owner
+
     });
-
-
 });
 
 
