@@ -14,11 +14,11 @@ contract Majoritarian is GnosisSafe {
     struct Proposal {
         uint256 lastChangedAt;
         uint256 currentForce;
-        // bytes32 fxProposed;
-        // bytes32[] fxArguments;
     }
 
-    /// @dev address of sender [subjective] OR 0 [objective], address of _who [subject] = > Proposal
+    /**
+     * @dev     address of sender [subjective] OR 0 [objective], address of _who [subject] = > Proposal
+     */
     mapping(address => mapping(address => Proposal)) proposalState;
 
     constructor(
